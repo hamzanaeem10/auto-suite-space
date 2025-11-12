@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   web:
-    image: node:18-alpine
+    image: node:20-alpine
     container_name: carhaven_frontend_ci
     working_dir: /app
     volumes:
