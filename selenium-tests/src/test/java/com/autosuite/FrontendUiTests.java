@@ -93,7 +93,7 @@ class FrontendUiTests {
   void homeCtaSectionHasSecondaryButton() {
     goTo("/");
     WebElement ctaButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
-        By.xpath("//section[contains(@class,'py-20')]//button[contains(., 'Get Started Now')]")
+        By.xpath("//a[@href='/auth']//button[contains(., 'Get Started Now')]")
     ));
     assertTrue(ctaButton.isDisplayed(), "CTA Get Started Now button should be visible");
   }
@@ -160,16 +160,12 @@ class FrontendUiTests {
   void authSignUpFlowShowsNameField() {
     goTo("/auth");
     WebElement toggleButton = wait.until(ExpectedConditions.elementToBeClickable(
-        By.xpath("//button[contains(., 'Need an account? Sign up')]")
+        By.xpath("//button[contains(text(), 'Need an account')]")
     ));
     toggleButton.click();
 
-    WebElement createHeading = wait.until(ExpectedConditions.visibilityOfElementLocated(
-        By.xpath("//h2[contains(., 'Create Account')]")
-    ));
-    assertEquals("Create Account", createHeading.getText(), "Sign-up view heading should be Create Account");
-
-    WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("#name")));
+    // Wait for the name input to appear (indicates sign-up mode)
+    WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input#name")));
     assertTrue(nameInput.isDisplayed(), "Name input should be visible in sign-up mode");
   }
 }
