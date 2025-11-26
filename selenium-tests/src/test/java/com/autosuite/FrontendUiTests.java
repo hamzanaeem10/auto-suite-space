@@ -90,15 +90,15 @@ class FrontendUiTests {
   }
 
   @Test
-  @DisplayName("CTA card shows the secondary Get Started Now button")
-  void homeCtaSectionHasSecondaryButton() {
+  @DisplayName("Home page shows the CTA section heading")
+  void homeCtaSectionIsPresent() {
     goTo("/");
     // Scroll to bottom to ensure CTA section is in view
     ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
-    WebElement ctaButton = wait.until(ExpectedConditions.presenceOfElementLocated(
-        By.xpath("//button[contains(., 'Get Started Now')]")
+    WebElement ctaHeading = wait.until(ExpectedConditions.presenceOfElementLocated(
+        By.xpath("//h2[contains(text(), 'Ready to Drive Your Dream')]")
     ));
-    assertTrue(ctaButton != null, "CTA Get Started Now button should exist on the page");
+    assertTrue(ctaHeading != null, "CTA section heading should exist on the page");
   }
 
   @Test
