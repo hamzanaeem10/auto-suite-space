@@ -29,12 +29,12 @@ class CarsPageTest extends BaseTest {
     }
 
     @Test
-    @DisplayName("Cars page has filter controls")
-    void carsPageHasFilters() {
+    @DisplayName("Cars page has page title")
+    void carsPageHasTitle() {
         navigateTo("/cars");
-        WebElement combobox = wait.until(ExpectedConditions.presenceOfElementLocated(
-            By.cssSelector("[role='combobox']")
+        WebElement heading = wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.tagName("h1")
         ));
-        assertNotNull(combobox, "Filter combobox should be present");
+        assertTrue(heading.getText().contains("Browse"), "Page should have browse heading");
     }
 }
