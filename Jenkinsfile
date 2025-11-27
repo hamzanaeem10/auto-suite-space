@@ -86,7 +86,9 @@ EOF
                 echo "🧪 Running Selenium UI tests in headless Chrome container..."
                 sh '''
                 set -e
-                                mkdir -p selenium-tests/target .m2
+                # Clean old test results first
+                rm -rf selenium-tests/target/surefire-reports || true
+                mkdir -p selenium-tests/target .m2
                 docker run --rm --network host \
                                     -e BASE_URL="${APP_BASE_URL}" \
                                     -v "$PWD/selenium-tests:/workspace" \
@@ -101,7 +103,7 @@ EOF
     post {
         always {
             script {
-                junit allowEmptyResults: true, testResults: 'selenium-tests/target/surefire-reports/*.xml'
+                junit allowEmptyResults: true, skipPublishingChecks: true, testResults: 'selenium-tests/target/surefire-reports/*.xml'
 
                 String recipient = ''
                 try {
