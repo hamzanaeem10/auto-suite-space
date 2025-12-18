@@ -45,8 +45,8 @@ const Profile = () => {
     }
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateProfile = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!user) return;
 
     try {
