@@ -1,5 +1,3 @@
-
-
 pipeline {
     agent any
 
@@ -29,8 +27,8 @@ pipeline {
             steps {
                 echo "🧹 Cleaning up environment..."
                 sh "docker compose -f ${DOCKER_COMPOSE_FILE} down --remove-orphans || true"
-                // This fix prevents "Permission Denied" in the next run
-                sh "sudo rm -rf selenium-tests/target" 
+                // FIX: No sudo here. This works if you ran the chown command on your server once.
+                sh "rm -rf selenium-tests/target || true" 
             }
         }
 
@@ -62,7 +60,6 @@ EOF
             steps {
                 echo "🧪 Waiting for app to respond at ${APP_BASE_URL}..."
                 sh '''
-                # Try for up to 60 seconds (12 tries * 5s)
                 attempt_counter=0
                 max_attempts=12
                 until $(curl -sSf ${APP_BASE_URL} > /dev/null); do
@@ -84,7 +81,6 @@ EOF
                 echo "🧪 Running Selenium UI tests..."
                 sh '''
                 mkdir -p selenium-tests/target .m2
-                # THE FIX: Added --user to avoid permission issues
                 docker run --rm --network host \
                     --user $(id -u):$(id -g) \
                     -e BASE_URL="${APP_BASE_URL}" \
@@ -99,22 +95,55 @@ EOF
 
     post {
         always {
-            // Let the built-in JUnit plugin handle the status. 
-            // This is safer than custom Groovy parsing.
             junit allowEmptyResults: true, testResults: 'selenium-tests/target/surefire-reports/*.xml'
             
             script {
+                // 1. Get the committer email
                 String recipient = sh(returnStdout: true, script: "git log -1 --pretty=format:'%ae'").trim()
                 
-                // Simplified status check to avoid Sandbox error
+                // 2. Define status variables
                 def buildStatus = currentBuild.currentResult 
-                def statusEmoji = (buildStatus == 'SUCCESS') ? '✅' : '❌'
+                def isSuccess = (buildStatus == 'SUCCESS')
+                def statusEmoji = isSuccess ? '✅' : '❌'
+                def headerColor = isSuccess ? '#28a745' : '#dc3545'
 
+                // 3. Check if log file exists for attachment
+                boolean logExists = fileExists('selenium-tests/target/ui-tests.log')
+
+                // 4. Create the HTML Body
+                def emailBody = """
+                <html>
+                <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333;">
+                    <div style="background-color: ${headerColor}; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0;">
+                        <h1 style="margin: 0;">${statusEmoji} Pipeline ${buildStatus}</h1>
+                    </div>
+                    <div style="padding: 20px; border: 1px solid #ddd; border-top: none; background-color: #f9f9f9;">
+                        <p>Hello <strong>${recipient}</strong>,</p>
+                        <p>The latest build for <strong>auto-suite-space</strong> has finished. Details are provided below:</p>
+                        
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                            <tr style="background-color: #eee;"><td style="padding: 10px; border: 1px solid #ddd;"><strong>Build Number</strong></td><td style="padding: 10px; border: 1px solid #ddd;">#${env.BUILD_NUMBER}</td></tr>
+                            <tr><td style="padding: 10px; border: 1px solid #ddd;"><strong>Status</strong></td><td style="padding: 10px; border: 1px solid #ddd; color: ${headerColor}; font-weight: bold;">${buildStatus}</td></tr>
+                            <tr style="background-color: #eee;"><td style="padding: 10px; border: 1px solid #ddd;"><strong>Console Logs</strong></td><td style="padding: 10px; border: 1px solid #ddd;"><a href="${env.BUILD_URL}console">View Jenkins Console</a></td></tr>
+                        </table>
+
+                        <p style="margin-top: 20px;"><em>The Selenium UI test log file has been attached to this email for your review.</em></p>
+                        
+                        <div style="margin-top: 30px; font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px;">
+                            Automated notification from Jenkins CI/CD System.
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+
+                // 5. Send the Email
                 emailext (
                     to: recipient,
                     subject: "${statusEmoji} ${buildStatus}: Auto Suite Build #${env.BUILD_NUMBER}",
-                    body: "Build ${env.BUILD_NUMBER} finished with status: ${buildStatus}\nCheck details here: ${env.BUILD_URL}",
-                    mimeType: 'text/html'
+                    body: emailBody,
+                    mimeType: 'text/html',
+                    attachmentsPattern: 'selenium-tests/target/ui-tests.log'
                 )
             }
         }
